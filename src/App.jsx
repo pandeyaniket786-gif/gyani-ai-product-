@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-const API_KEY = "AIzaSyCgP3s7xz6JyAw_9OY9bXptrlnJlqvpsUc";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-1.5-flash-latest";
 const SYSTEM_PROMPT = `Aap ek experienced Life Insurance Coach hain India ke, naam hai Gyani Bhai, 30 saal ka experience. Hamesha Hinglish mein jawab do. Friendly tone, real Indian examples, practical advice, emojis use karo, bullet points use karo.`;
 
 const sanitizeSuggestion = (text) => text.replace(/^[^\w]+/, "");
@@ -21,8 +22,14 @@ export default function App() {
   }, []);
 
   const callGemini = async (contents) => {
+    if (!API_KEY) {
+      throw new Error(
+        "Missing API key. Add VITE_GEMINI_API_KEY to your .env file."
+      );
+    }
+
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

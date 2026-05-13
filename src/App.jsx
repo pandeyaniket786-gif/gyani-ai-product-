@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-1.5-flash-latest";
-const SYSTEM_PROMPT = `Aap ek experienced Life Insurance Coach hain India ke, naam hai Gyani Bhai, 30 saal ka experience. Hamesha Hinglish mein jawab do. Friendly tone, real Indian examples, practical advice, emojis use karo, bullet points use karo.`;
-
-const sanitizeSuggestion = (text) => text.replace(/^[^\w]+/, "");
+const API_KEY = "AIzaSyA4EuzilZFZh_I0gh7I_zfQSpS7bY-0YII";
+const SYSTEM_PROMPT = `Aap ek experienced Life Insurance Coach hain India ke, naam hai Gyani Bhai, 30 saal ka experience. Hamesha Hinglish mein jawab do. Friendly tone, real Indian examples use karo jaise Mumbai IT professional, Delhi business owner, Gujarat trader. Practical advice do, emojis use karo, bullet points use karo. Insurance products clearly explain karo: Term, ULIP, Endowment, Health.`;
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -18,18 +15,12 @@ export default function App() {
   }, [messages]);
 
   useEffect(() => {
-    startChat();
+    initChat();
   }, []);
 
   const callGemini = async (contents) => {
-    if (!API_KEY) {
-      throw new Error(
-        "Missing API key. Add VITE_GEMINI_API_KEY to your .env file."
-      );
-    }
-
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,37 +29,23 @@ export default function App() {
     );
 
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error?.message || "API request failed");
-    }
-
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      data.candidates?.[0]?.content?.text ||
-      "Kuch galat ho gaya. Dobara try karo."
-    );
+    if (data.error) throw new Error(data.error.message);
+    return data.candidates[0].content.parts[0].text;
   };
 
-  const startChat = async () => {
+  const initChat = async () => {
     setLoading(true);
     try {
       const reply = await callGemini([
-        { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-        { role: "model", parts: [{ text: "Samajh gaya!" }] },
-        { role: "user", parts: [{ text: "Namaste karo 2 lines mein" }] },
+        { role: "user", parts: [{ text: SYSTEM_PROMPT + " Namaste karo 2 lines mein." }] },
       ]);
       setMessages([{ role: "assistant", text: reply }]);
     } catch (err) {
-      console.error(err);
       setMessages([
-        {
-          role: "assistant",
-          text: "Namaste! 🙏 Main Gyani Bhai hoon! Koi bhi insurance sawaal poochho 😊",
-        },
+        { role: "assistant", text: "Namaste! 🙏 Main Gyani Bhai hoon! Koi bhi insurance sawaal poochho 😊" },
       ]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const sendMessage = async () => {
@@ -83,7 +60,7 @@ export default function App() {
     try {
       const contents = [
         { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-        { role: "model", parts: [{ text: "Samajh gaya!" }] },
+        { role: "model", parts: [{ text: "Samajh gaya, main Gyani Bhai hoon!" }] },
         ...updated.map((m) => ({
           role: m.role === "assistant" ? "model" : "user",
           parts: [{ text: m.text }],
@@ -93,14 +70,9 @@ export default function App() {
       const reply = await callGemini(contents);
       setMessages([...updated, { role: "assistant", text: reply }]);
     } catch (err) {
-      console.error(err);
-      setMessages([
-        ...updated,
-        { role: "assistant", text: "Network error! Dobara try karo 🙏" },
-      ]);
-    } finally {
-      setLoading(false);
+      setMessages([...updated, { role: "assistant", text: `❌ Error: ${err.message}` }]);
     }
+    setLoading(false);
   };
 
   const suggestions = [
@@ -179,7 +151,7 @@ export default function App() {
                 <button
                   key={i}
                   className="sug-btn"
-                  onClick={() => setInput(sanitizeSuggestion(s))}
+                  onClick={() => setInput(s.substring(2))}
                 >
                   {s}
                 </button>

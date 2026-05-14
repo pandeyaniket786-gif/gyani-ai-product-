@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-const API_KEY = "AIzaSyA4EuzilZFZh_I0gh7I_zfQSpS7bY-0YII";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const SYSTEM_PROMPT = `Aap ek experienced Life Insurance Coach hain India ke, naam hai Gyani Bhai, 30 saal ka experience. Hamesha Hinglish mein jawab do. Friendly tone, real Indian examples use karo jaise Mumbai IT professional, Delhi business owner, Gujarat trader. Practical advice do, emojis use karo, bullet points use karo. Insurance products clearly explain karo: Term, ULIP, Endowment, Health.`;
 
 export default function App() {

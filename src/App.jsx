@@ -68,9 +68,10 @@ export default function App() {
 
   const callGemini = async (contents) => {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/"gemini-1.5.0-flash":generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
         },
@@ -125,12 +126,11 @@ export default function App() {
           text: reply,
         },
       ]);
-    } catch (err) {
+    } catch (error) {
       setMessages([
         {
           role: "assistant",
-          text:
-            "Namaste 🙏 Main Gyani Bhai AI hoon 🤖 Insurance aur Financial Planning me help karunga 🚀",
+          text: "Namaste 🙏 Main Gyani Bhai hoon. Insurance ke baare me kuch bhi poochho 😊",
         },
       ]);
     }
@@ -143,7 +143,7 @@ export default function App() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    const userText = input.trim();
+    const userMessage = input.trim();
 
     setInput("");
 
@@ -151,7 +151,7 @@ export default function App() {
       ...messages,
       {
         role: "user",
-        text: userText,
+        text: userMessage,
       },
     ];
 
@@ -174,7 +174,7 @@ export default function App() {
           role: "model",
           parts: [
             {
-              text: "Samajh gaya 👍 Main Gyani Bhai AI hoon.",
+              text: "Samajh gaya 👍",
             },
           ],
         },
@@ -199,12 +199,12 @@ export default function App() {
           text: reply,
         },
       ]);
-    } catch (err) {
+    } catch (error) {
       setMessages([
         ...updatedMessages,
         {
           role: "assistant",
-          text: `❌ Error: ${err.message}`,
+          text: `❌ Error: ${error.message}`,
         },
       ]);
     }
@@ -212,15 +212,15 @@ export default function App() {
     setLoading(false);
   };
 
-  // QUICK QUESTIONS
+  // QUICK SUGGESTIONS
 
   const suggestions = [
     "💰 Term Insurance kya hai?",
     "📈 ULIP vs Mutual Fund",
-    "🏦 LIC vs Private",
-    "📋 Claim kaise milta hai?",
-    "💸 Tax saving ka best option",
-    "🧓 Retirement Planning",
+    "🏦 FD vs Pension Plan",
+    "👨‍👩‍👧 Family Protection Planning",
+    "💸 Tax Saving ka best option",
+    "📋 Claim settlement kaise hota hai?",
   ];
 
   return (
@@ -229,21 +229,20 @@ export default function App() {
 
       <header className="header">
         <div className="header-inner">
-          <div className="avatar">🧠</div>
+          <div className="avatar">🧓</div>
 
           <div className="header-info">
             <h1>
-              Gyani Bhai AI
-              <span className="verified"> ✓</span>
+              Gyani Bhai <span className="verified">✓</span>
             </h1>
 
             <p className="tagline">
-              India's Smart Insurance Coach 🇮🇳
+              India Ka AI Life Insurance Coach
             </p>
 
             <span className="status">
               <span className="dot"></span>
-              Online • "gemini-1.5.0-flash"
+              Online
             </span>
           </div>
         </div>
@@ -252,26 +251,18 @@ export default function App() {
       {/* CHAT AREA */}
 
       <div className="chat-area">
-        {messages.length === 0 && loading && (
-          <div className="loading-start">
-            <div className="spinner"></div>
-
-            <p>Gyani Bhai AI aa rahe hain... 🙏</p>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
+        {messages.map((msg, index) => (
           <div
-            key={i}
+            key={index}
             className={`message ${msg.role}`}
           >
             {msg.role === "assistant" && (
-              <div className="msg-av">🧠</div>
+              <div className="msg-av">🧓</div>
             )}
 
             <div className="bubble">
-              {msg.text.split("\n").map((line, j) => (
-                <p key={j}>{line}</p>
+              {msg.text.split("\n").map((line, i) => (
+                <p key={i}>{line}</p>
               ))}
             </div>
 
@@ -281,11 +272,11 @@ export default function App() {
           </div>
         ))}
 
-        {/* TYPING */}
+        {/* LOADING */}
 
-        {loading && messages.length > 0 && (
+        {loading && (
           <div className="message assistant">
-            <div className="msg-av">🧠</div>
+            <div className="msg-av">🧓</div>
 
             <div className="bubble typing">
               <span></span>
@@ -297,22 +288,20 @@ export default function App() {
 
         {/* SUGGESTIONS */}
 
-        {messages.length === 1 && !loading && (
+        {messages.length <= 1 && !loading && (
           <div className="suggestions">
-            <p className="sug-label">
-              ⚡ Quick Questions
-            </p>
+            <p className="sug-label">⚡ Quick Questions</p>
 
             <div className="sug-grid">
-              {suggestions.map((s, i) => (
+              {suggestions.map((item, index) => (
                 <button
-                  key={i}
+                  key={index}
                   className="sug-btn"
                   onClick={() =>
-                    setInput(s.substring(2))
+                    setInput(item.substring(2))
                   }
                 >
-                  {s}
+                  {item}
                 </button>
               ))}
             </div>
@@ -322,7 +311,7 @@ export default function App() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* INPUT */}
+      {/* INPUT AREA */}
 
       <div className="input-area">
         <textarea
@@ -330,9 +319,6 @@ export default function App() {
           onChange={(e) =>
             setInput(e.target.value)
           }
-          placeholder="Insurance ke baare me poochho... 🙏"
-          rows={1}
-          disabled={loading}
           onKeyDown={(e) => {
             if (
               e.key === "Enter" &&
@@ -342,23 +328,21 @@ export default function App() {
               sendMessage();
             }
           }}
+          placeholder="Insurance ke baare me poochho... 🙏"
+          rows={1}
+          disabled={loading}
         />
 
         <button
-          className="send-btn"
           onClick={sendMessage}
-          disabled={
-            loading || !input.trim()
-          }
+          disabled={loading || !input.trim()}
+          className="send-btn"
         >
-          {loading ? (
-            <span className="btn-spin"></span>
-          ) : (
-            "➤"
-          )}
+          {loading ? "..." : "➤"}
         </button>
       </div>
     </div>
   );
+}
                       }
             

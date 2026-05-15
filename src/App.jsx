@@ -111,9 +111,7 @@ export default function App() {
           role: "user",
           parts: [
             {
-              text: `${SYSTEM_PROMPT}
-
-Warm welcome do in 2 lines.`,
+              text: `${SYSTEM_PROMPT}\n\nWarm welcome do in 2 lines.`,
             },
           ],
         },
@@ -153,9 +151,7 @@ Warm welcome do in 2 lines.`,
           ...updated,
           {
             role: "assistant",
-            text: `✅ Gyani Bhai ne seekh liya:
-
-${learned}`,
+            text: `✅ Gyani Bhai ne seekh liya:\n\n${learned}`,
           },
         ]);
 
@@ -168,11 +164,7 @@ ${learned}`,
           role: "user",
           parts: [
             {
-              text: `${SYSTEM_PROMPT}
-
-Learned Knowledge:
-${learnedData.join("
-")}`,
+              text: `${SYSTEM_PROMPT}\n\nLearned Knowledge:\n${learnedData.join("\n")}`,
             },
           ],
         },
@@ -200,9 +192,7 @@ ${learnedData.join("
         ...updated,
         {
           role: "assistant",
-          text: `❌ Gyani Bhai thoda busy hain 😅
-
-${err.message}`,
+          text: `❌ Gyani Bhai thoda busy hain 😅\n\n${err.message}`,
         },
       ]);
     }
@@ -273,8 +263,7 @@ ${err.message}`,
             )}
 
             <div className="bubble">
-              {msg.text.split("
-").map((line, j) => (
+              {msg.text.split("\n").map((line, j) => (
                 <p key={j}>{line}</p>
               ))}
             </div>
@@ -343,4 +332,4 @@ ${err.message}`,
       </div>
     </div>
   );
-}
+                  }

@@ -2,105 +2,105 @@ import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const MAX_HISTORY = 10;
 
 const SYSTEM_PROMPT = `
-Tum "Gyani Bhai" ho — India ke sabse experienced Life Insurance Coach.
+Tum Gyani Bhai AI ho 🤖🇮🇳
 
-PROFILE:
-- 30+ years experience
-- Expert in Indian life insurance market till 2026
-- HDFC Life, LIC, ICICI Prudential, SBI Life, Max Life knowledge
-- MDRT level sales psychology
-- Need based selling expert
-- Storytelling master
-- Human psychology samajhte ho
-- Emotional selling aur financial planning dono jaante ho
+30+ saal experienced Indian Life Insurance Coach.
 
-LANGUAGE STYLE:
-- Hamesha natural Hinglish mein jawab do
-- Friendly, warm aur motivating tone
-- Indian examples use karo
-- Emojis use karo naturally
+Rules:
+- Hamesha Hinglish me answer do
+- Friendly Indian tone
+- Real examples use karo
 - Bullet points use karo
+- Emojis use karo
+- Insurance ko simple language me samjhao
 
-ANSWER FORMAT:
-Har answer 4 angles se do:
-1. Customer Perspective
-2. Financial Perspective
-3. Family/Emotional Perspective
-4. Advisor/Sales Perspective
+Har answer 4 perspectives me do:
+1. 👨 Customer Angle
+2. 💼 Advisor Angle
+3. 📈 Financial Planning Angle
+4. 🧠 Emotional Angle
 
-Jab bhi answer do:
-- Real examples do
-- Step-by-step explain karo
-- Pros-cons batao
-- Tax benefit explain karo
-- Claim reality batao
-- Practical advice do
+Knowledge:
+- Term Insurance
+- ULIP
+- Endowment
+- Retirement Planning
+- Child Plans
+- Tax Saving
+- Claim Settlement
+- Need Based Selling
+- IRDAI 2026 updates
+- Indian Insurance Market
 
-SALES TRAINING MODE:
-- objection handling sikhao
-- closing lines do
-- storytelling sikhao
-- client psychology sikhao
-- cross selling sikhao
-
-IMPORTANT:
-Kabhi boring corporate language mat use karo.
-Always human sounding answers do.
+Answer structure:
+🔍 Analysis
+👨 Customer View
+💼 Advisor View
+📈 Financial View
+🧠 Emotional View
+✅ Final Recommendation
 `;
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [learnedData, setLearnedData] = useState([]);
+
   const messagesEndRef = useRef(null);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }, 100);
+  // AUTO SCROLL
 
-    return () => clearTimeout(timeout);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [messages]);
+
+  // INITIAL CHAT
 
   useEffect(() => {
     initChat();
   }, []);
 
+  // GEMINI API CALL
+
   const callGemini = async (contents) => {
-    const res = await fetch(
+    const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify({
           contents,
+
           generationConfig: {
             temperature: 0.9,
             topP: 0.95,
             topK: 40,
-            maxOutputTokens: 1500,
+            maxOutputTokens: 2048,
           },
         }),
       }
     );
 
-    const data = await res.json();
+    const data = await response.json();
 
     if (data.error) {
       throw new Error(data.error.message);
     }
 
-    return data.candidates[0].content.parts[0].text;
+    return (
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Kuch issue aa gaya 😅"
+    );
   };
+
+  // INITIAL MESSAGE
 
   const initChat = async () => {
     setLoading(true);
@@ -111,77 +111,15 @@ export default function App() {
           role: "user",
           parts: [
             {
-              text: `${SYSTEM_PROMPT}\n\nWarm welcome do in 2 lines.`,
+              text:
+                SYSTEM_PROMPT +
+                "\n\nUser ko 2 lines me welcome karo.",
             },
           ],
         },
       ]);
 
-      setMessages([{ role: "assistant", text: reply }]);
-    } catch (err) {
       setMessages([
-        {
-          role: "assistant",
-          text: "Namaste 🙏 Main Gyani Bhai hoon! Insurance, retirement aur wealth planning ke sawaal poochho 😊",
-        },
-      ]);
-    }
-
-    setLoading(false);
-  };
-
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-
-    const userText = input.trim();
-    setInput("");
-
-    const updated = [...messages, { role: "user", text: userText }];
-    setMessages(updated);
-    setLoading(true);
-
-    try {
-      // LEARNING MODE
-      if (userText.startsWith("LEARN:")) {
-        const learned = userText.replace("LEARN:", "").trim();
-
-        setLearnedData((prev) => [...prev, learned]);
-
-        setMessages([
-          ...updated,
-          {
-            role: "assistant",
-            text: `✅ Gyani Bhai ne seekh liya:\n\n${learned}`,
-          },
-        ]);
-
-        setLoading(false);
-        return;
-      }
-
-      const contents = [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `${SYSTEM_PROMPT}\n\nLearned Knowledge:\n${learnedData.join("\n")}`,
-            },
-          ],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Samajh gaya, main Gyani Bhai hoon!" }],
-        },
-        ...updated.slice(-MAX_HISTORY).map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.text }],
-        })),
-      ];
-
-      const reply = await callGemini(contents);
-
-      setMessages([
-        ...updated,
         {
           role: "assistant",
           text: reply,
@@ -189,10 +127,10 @@ export default function App() {
       ]);
     } catch (err) {
       setMessages([
-        ...updated,
         {
           role: "assistant",
-          text: `❌ Gyani Bhai thoda busy hain 😅\n\n${err.message}`,
+          text:
+            "Namaste 🙏 Main Gyani Bhai AI hoon 🤖 Insurance aur Financial Planning me help karunga 🚀",
         },
       ]);
     }
@@ -200,66 +138,135 @@ export default function App() {
     setLoading(false);
   };
 
+  // SEND MESSAGE
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    const userText = input.trim();
+
+    setInput("");
+
+    const updatedMessages = [
+      ...messages,
+      {
+        role: "user",
+        text: userText,
+      },
+    ];
+
+    setMessages(updatedMessages);
+
+    setLoading(true);
+
+    try {
+      const contents = [
+        {
+          role: "user",
+          parts: [
+            {
+              text: SYSTEM_PROMPT,
+            },
+          ],
+        },
+
+        {
+          role: "model",
+          parts: [
+            {
+              text: "Samajh gaya 👍 Main Gyani Bhai AI hoon.",
+            },
+          ],
+        },
+
+        ...updatedMessages.map((msg) => ({
+          role: msg.role === "assistant" ? "model" : "user",
+
+          parts: [
+            {
+              text: msg.text,
+            },
+          ],
+        })),
+      ];
+
+      const reply = await callGemini(contents);
+
+      setMessages([
+        ...updatedMessages,
+        {
+          role: "assistant",
+          text: reply,
+        },
+      ]);
+    } catch (err) {
+      setMessages([
+        ...updatedMessages,
+        {
+          role: "assistant",
+          text: `❌ Error: ${err.message}`,
+        },
+      ]);
+    }
+
+    setLoading(false);
+  };
+
+  // QUICK QUESTIONS
+
   const suggestions = [
-    "💰 Mere liye best insurance kaunsa hai?",
-    "📈 ULIP vs Mutual Fund explain karo",
-    "👨‍👩‍👧 Family protection planning kaise karein?",
-    "🏦 FD vs Pension Plan",
-    "💸 Tax saving + wealth creation ka best combo",
-    "🎯 Client objection kaise handle karein?",
-    "📋 Claim settlement reality kya hai?",
-    "🧠 MDRT advisor kaise bane?",
+    "💰 Term Insurance kya hai?",
+    "📈 ULIP vs Mutual Fund",
+    "🏦 LIC vs Private",
+    "📋 Claim kaise milta hai?",
+    "💸 Tax saving ka best option",
+    "🧓 Retirement Planning",
   ];
 
   return (
     <div className="app">
+      {/* HEADER */}
+
       <header className="header">
         <div className="header-inner">
-          <div className="avatar">🧓</div>
+          <div className="avatar">🧠</div>
 
           <div className="header-info">
             <h1>
-              Gyani Bhai <span className="verified">✓</span>
+              Gyani Bhai AI
+              <span className="verified"> ✓</span>
             </h1>
 
             <p className="tagline">
-              India Ka Smart AI Life Insurance Coach
+              India's Smart Insurance Coach 🇮🇳
             </p>
 
             <span className="status">
               <span className="dot"></span>
-              Online • AI Powered
+              Online • Gemini 1.5 Flash
             </span>
-          </div>
-
-          <div className="stats">
-            <div className="stat">
-              <span className="num">30+</span>
-              <span className="lbl">Years</span>
-            </div>
-
-            <div className="divider"></div>
-
-            <div className="stat">
-              <span className="num">10K+</span>
-              <span className="lbl">Clients</span>
-            </div>
           </div>
         </div>
       </header>
+
+      {/* CHAT AREA */}
 
       <div className="chat-area">
         {messages.length === 0 && loading && (
           <div className="loading-start">
             <div className="spinner"></div>
-            <p>Gyani Bhai aa rahe hain... 🙏</p>
+
+            <p>Gyani Bhai AI aa rahe hain... 🙏</p>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.role}`}>
+          <div
+            key={i}
+            className={`message ${msg.role}`}
+          >
             {msg.role === "assistant" && (
-              <div className="msg-av">🧓</div>
+              <div className="msg-av">🧠</div>
             )}
 
             <div className="bubble">
@@ -274,9 +281,11 @@ export default function App() {
           </div>
         ))}
 
+        {/* TYPING */}
+
         {loading && messages.length > 0 && (
           <div className="message assistant">
-            <div className="msg-av">🧓</div>
+            <div className="msg-av">🧠</div>
 
             <div className="bubble typing">
               <span></span>
@@ -286,16 +295,22 @@ export default function App() {
           </div>
         )}
 
+        {/* SUGGESTIONS */}
+
         {messages.length === 1 && !loading && (
           <div className="suggestions">
-            <p className="sug-label">⚡ Jaldi Poochho</p>
+            <p className="sug-label">
+              ⚡ Quick Questions
+            </p>
 
             <div className="sug-grid">
               {suggestions.map((s, i) => (
                 <button
                   key={i}
                   className="sug-btn"
-                  onClick={() => setInput(s.substring(2))}
+                  onClick={() =>
+                    setInput(s.substring(2))
+                  }
                 >
                   {s}
                 </button>
@@ -307,30 +322,43 @@ export default function App() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* INPUT */}
+
       <div className="input-area">
         <textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
+          placeholder="Insurance ke baare me poochho... 🙏"
+          rows={1}
+          disabled={loading}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey
+            ) {
               e.preventDefault();
               sendMessage();
             }
           }}
-          placeholder="Insurance, retirement, investment ya sales ke baare mein poochho... 🙏"
-          rows={1}
-          disabled={loading}
         />
 
         <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
           className="send-btn"
+          onClick={sendMessage}
+          disabled={
+            loading || !input.trim()
+          }
         >
-          {loading ? <span className="btn-spin"></span> : "➤"}
+          {loading ? (
+            <span className="btn-spin"></span>
+          ) : (
+            "➤"
+          )}
         </button>
       </div>
     </div>
   );
-          }
+                      }
             

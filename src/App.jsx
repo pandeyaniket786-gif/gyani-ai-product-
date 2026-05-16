@@ -1,58 +1,44 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-// ✅ VITE ENV VARIABLE
+// ✅ Gemini API Key from Vite ENV
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// ✅ WORKING MODEL
-const MODEL = "gemini-2.0-flash";
+// ✅ Free + Fast Model
+const MODEL = "gemini-1.5-flash-8b";
 
-// ✅ AI COACH SYSTEM PROMPT
+// ✅ Small Token Optimized Prompt
 const SYSTEM_PROMPT = `
-Tum Gyani Bhai AI ho 🤖🇮🇳
-
-India ke Top Life Insurance Mentor aur Sales Coach.
-
-Tumhara kaam:
-- Life insurance ko simple language me samjhana
-- Advisors ko sales aur closing me help karna
-- Financial planning guidance dena
-- Emotional storytelling use karna
+You are Gyani AI, an expert Indian Life Insurance Coach.
 
 Rules:
-- Hamesha Hinglish me answer do
-- Friendly aur human tone rakho
-- Indian examples use karo
-- Bullet points aur emojis use karo
-- Robotic answer kabhi mat do
+- Reply only in professional English
+- Keep answers short, crisp, practical
+- Use bullet points
+- Give advanced insurance insights simply
+- Focus on Indian market
+- Explain from:
+1. Customer View
+2. Advisor View
+3. Financial View
+4. Final Recommendation
 
 Topics:
-- Term Insurance
-- ULIP
-- SIP vs Insurance
-- Child Plans
-- Retirement Planning
-- Need Based Selling
-- Objection Handling
-- MDRT Mindset
-- Financial Planning
-- Wealth Creation
+Term Insurance, ULIP, Retirement, Child Plans,
+Wealth Creation, Need Based Selling,
+Objection Handling, Financial Planning.
 
-Har answer structure:
-🔍 Analysis
-👨 Customer Angle
-💼 Advisor Angle
-📈 Financial Planning Angle
-🧠 Emotional Angle
-✅ Final Recommendation
+Tone:
+Professional, smart, practical, human.
 `;
 
 export default function App() {
+  // ✅ Default Welcome Message
   const [messages, setMessages] = useState([
     {
       role: "assistant",
       text:
-        "🙏 Namaste! Main Gyani Bhai AI hoon 🤖\n\nAap life insurance, sales, objection handling ya financial planning ka koi bhi question pooch sakte hain 🚀",
+        "👋 Welcome to Gyani AI\nAsk anything about Life Insurance, Sales or Financial Planning.",
     },
   ]);
 
@@ -61,39 +47,16 @@ export default function App() {
 
   const messagesEndRef = useRef(null);
 
-  // ✅ AUTO SCROLL
+  // ✅ Auto Scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages]);
 
-  // ✅ GEMINI API CALL
-  const callGemini = async (chatMessages) => {
+  // ✅ Gemini API Function
+  const callGemini = async (userText) => {
     try {
-      // ✅ CONVERT CHAT HISTORY
-      const contents = [
-        {
-          role: "user",
-          parts: [
-            {
-              text: SYSTEM_PROMPT,
-            },
-          ],
-        },
-
-        ...chatMessages.map((msg) => ({
-          role: msg.role === "assistant" ? "model" : "user",
-
-          parts: [
-            {
-              text: msg.text,
-            },
-          ],
-        })),
-      ];
-
-      // ✅ API REQUEST
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
         {
@@ -104,62 +67,55 @@ export default function App() {
           },
 
           body: JSON.stringify({
-            contents,
+            contents: [
+              {
+                role: "user",
 
-            generationConfig: {
-              temperature: 0.9,
-              topP: 0.95,
-              topK: 40,
-              maxOutputTokens: 2048,
-            },
+                parts: [
+                  {
+                    text: `
+${SYSTEM_PROMPT}
 
-            safetySettings: [
-              {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_NONE",
-              },
-              {
-                category: "HARM_CATEGORY_HATE_SPEECH",
-                threshold: "BLOCK_NONE",
-              },
-              {
-                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold: "BLOCK_NONE",
-              },
-              {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_NONE",
+User Question:
+${userText}
+                    `,
+                  },
+                ],
               },
             ],
+
+            generationConfig: {
+              temperature: 0.7,
+              topP: 0.9,
+              topK: 20,
+              maxOutputTokens: 512,
+            },
           }),
         }
       );
 
-      // ✅ RESPONSE JSON
       const data = await response.json();
 
-      console.log("Gemini Response:", data);
+      console.log(data);
 
-      // ✅ ERROR HANDLING
+      // ✅ Error Handling
       if (!response.ok) {
         throw new Error(
-          data?.error?.message || "API request failed"
+          data?.error?.message || "Something went wrong"
         );
       }
 
-      // ✅ EXTRACT TEXT
-      const text =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      return text || "⚠️ Koi response nahi mila.";
+      // ✅ AI Text Response
+      return (
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No response received."
+      );
     } catch (error) {
-      console.error(error);
-
-      return `❌ Error: ${error.message}`;
+      return `❌ ${error.message}`;
     }
   };
 
-  // ✅ SEND MESSAGE
+  // ✅ Send Message
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -168,23 +124,20 @@ export default function App() {
       text: input,
     };
 
-    const updatedMessages = [...messages, userMessage];
+    // ✅ Update Chat
+    setMessages((prev) => [...prev, userMessage]);
 
-    // ✅ SHOW USER MESSAGE
-    setMessages(updatedMessages);
+    const currentInput = input;
 
-    // ✅ CLEAR INPUT
     setInput("");
-
-    // ✅ LOADING
     setLoading(true);
 
-    // ✅ GET AI RESPONSE
-    const aiReply = await callGemini(updatedMessages);
+    // ✅ Get AI Reply
+    const aiReply = await callGemini(currentInput);
 
-    // ✅ SHOW AI RESPONSE
-    setMessages([
-      ...updatedMessages,
+    // ✅ Add AI Reply
+    setMessages((prev) => [
+      ...prev,
       {
         role: "assistant",
         text: aiReply,
@@ -198,8 +151,8 @@ export default function App() {
     <div className="app">
       {/* HEADER */}
       <header className="header">
-        <h1>🤖 Gyani Bhai AI</h1>
-        <p>Indian Life Insurance Expert</p>
+        <h1>🧠 Gyani AI</h1>
+        <p>Life Insurance Expert</p>
       </header>
 
       {/* CHAT AREA */}
@@ -220,7 +173,7 @@ export default function App() {
         {/* LOADING */}
         {loading && (
           <div className="ai-message">
-            ✍️ Gyani Bhai soch rahe hain...
+            Thinking...
           </div>
         )}
 
@@ -231,7 +184,7 @@ export default function App() {
       <div className="input-area">
         <input
           type="text"
-          placeholder="Apna insurance question poochiye..."
+          placeholder="Ask your insurance question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -247,4 +200,4 @@ export default function App() {
       </div>
     </div>
   );
-}
+          }

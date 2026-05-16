@@ -1,22 +1,21 @@
 import { useState } from "react";
 import "./App.css";
 
-// ✅ OPENROUTER API KEY
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-// ✅ FREE MODEL
-const MODEL = "meta-llama/llama-3.1-8b-instruct:free";
+// ✅ MOST STABLE FREE MODEL
+const MODEL = "google/gemma-2-9b-it:free";
 
-// ✅ SMALL TOKEN PROMPT
+// ✅ SMALL + SMART PROMPT
 const SYSTEM_PROMPT = `
 You are Gyani AI, an expert Indian Life Insurance Coach.
 
 Rules:
-- Reply in professional English
-- Keep answers short and practical
-- Use bullet points
+- Reply in simple professional English
+- Keep answers short and crisp
+- Use bullet points only
 - Focus on Indian insurance market
-- Explain simply
+- Be practical and advisor-friendly
 
 Answer Format:
 • Customer View
@@ -38,59 +37,48 @@ export default function App() {
 
   const [loading, setLoading] = useState(false);
 
-  // ✅ OPENROUTER API
+  // ✅ API CALL (OPENROUTER)
   const askAI = async (question) => {
-    try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL,
 
-          headers: {
-            Authorization: `Bearer ${API_KEY}`,
-            "Content-Type": "application/json",
-          },
+          messages: [
+            {
+              role: "system",
+              content: SYSTEM_PROMPT,
+            },
+            {
+              role: "user",
+              content: question,
+            },
+          ],
 
-          body: JSON.stringify({
-            model: MODEL,
-
-            messages: [
-              {
-                role: "system",
-                content: SYSTEM_PROMPT,
-              },
-
-              {
-                role: "user",
-                content: question,
-              },
-            ],
-
-            temperature: 0.7,
-            max_tokens: 300,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      console.log(data);
-
-      // ✅ HANDLE ERRORS
-      if (data.error) {
-        throw new Error(
-          data.error.message || "API Error"
-        );
+          temperature: 0.7,
+          max_tokens: 300,
+        }),
       }
+    );
 
-      // ✅ AI RESPONSE
-      return (
-        data?.choices?.[0]?.message?.content ||
-        "No response received."
-      );
-    } catch (error) {
-      return `❌ ${error.message}`;
+    const data = await response.json();
+
+    console.log(data);
+
+    if (data.error) {
+      throw new Error(data.error.message);
     }
+
+    return (
+      data?.choices?.[0]?.message?.content ||
+      "No response received."
+    );
   };
 
   // ✅ SEND MESSAGE
@@ -99,42 +87,42 @@ export default function App() {
 
     const userQuestion = input;
 
-    // USER MESSAGE
     setMessages((prev) => [
       ...prev,
-      {
-        role: "user",
-        text: userQuestion,
-      },
+      { role: "user", text: userQuestion },
     ]);
 
     setInput("");
     setLoading(true);
 
-    // AI RESPONSE
-    const reply = await askAI(userQuestion);
+    try {
+      const reply = await askAI(userQuestion);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        text: reply,
-      },
-    ]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: reply },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: `❌ ${error.message}`,
+        },
+      ]);
+    }
 
     setLoading(false);
   };
 
   return (
     <div className="app">
-      {/* HEADER */}
       <h1>🧠 Gyani AI</h1>
 
-      {/* CHAT AREA */}
       <div className="chat-box">
-        {messages.map((msg, index) => (
+        {messages.map((msg, i) => (
           <div
-            key={index}
+            key={i}
             className={
               msg.role === "user"
                 ? "user-message"
@@ -145,7 +133,6 @@ export default function App() {
           </div>
         ))}
 
-        {/* LOADING */}
         {loading && (
           <div className="ai-message">
             Thinking...
@@ -153,17 +140,14 @@ export default function App() {
         )}
       </div>
 
-      {/* INPUT AREA */}
       <div className="input-area">
         <input
           type="text"
-          placeholder="Ask your insurance question..."
+          placeholder="Ask insurance question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              sendMessage();
-            }
+            if (e.key === "Enter") sendMessage();
           }}
         />
 

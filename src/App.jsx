@@ -1,10 +1,11 @@
 import { useState } from "react";
 import "./App.css";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// ✅ OPENROUTER API KEY
+const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-// ✅ ONLY WORKING MODEL
-const MODEL = "gemini-2.0-flash";
+// ✅ FREE MODEL
+const MODEL = "meta-llama/llama-3.1-8b-instruct:free";
 
 // ✅ SMALL TOKEN PROMPT
 const SYSTEM_PROMPT = `
@@ -37,38 +38,36 @@ export default function App() {
 
   const [loading, setLoading] = useState(false);
 
-  // ✅ GEMINI API
+  // ✅ OPENROUTER API
   const askAI = async (question) => {
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+        "https://openrouter.ai/api/v1/chat/completions",
         {
           method: "POST",
 
           headers: {
+            Authorization: `Bearer ${API_KEY}`,
             "Content-Type": "application/json",
           },
 
           body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `
-${SYSTEM_PROMPT}
+            model: MODEL,
 
-Question:
-${question}
-                    `,
-                  },
-                ],
+            messages: [
+              {
+                role: "system",
+                content: SYSTEM_PROMPT,
+              },
+
+              {
+                role: "user",
+                content: question,
               },
             ],
 
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 300,
-            },
+            temperature: 0.7,
+            max_tokens: 300,
           }),
         }
       );
@@ -77,14 +76,17 @@ ${question}
 
       console.log(data);
 
-      // ✅ HANDLE API ERRORS
+      // ✅ HANDLE ERRORS
       if (data.error) {
-        throw new Error(data.error.message);
+        throw new Error(
+          data.error.message || "API Error"
+        );
       }
 
+      // ✅ AI RESPONSE
       return (
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "No response."
+        data?.choices?.[0]?.message?.content ||
+        "No response received."
       );
     } catch (error) {
       return `❌ ${error.message}`;
@@ -128,7 +130,7 @@ ${question}
       {/* HEADER */}
       <h1>🧠 Gyani AI</h1>
 
-      {/* CHAT */}
+      {/* CHAT AREA */}
       <div className="chat-box">
         {messages.map((msg, index) => (
           <div
@@ -143,6 +145,7 @@ ${question}
           </div>
         ))}
 
+        {/* LOADING */}
         {loading && (
           <div className="ai-message">
             Thinking...
@@ -150,7 +153,7 @@ ${question}
         )}
       </div>
 
-      {/* INPUT */}
+      {/* INPUT AREA */}
       <div className="input-area">
         <input
           type="text"

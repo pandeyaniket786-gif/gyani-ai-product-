@@ -1,61 +1,44 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 
-// ✅ Gemini API Key from Vite ENV
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// ✅ Free + Fast Model
-const MODEL = "gemini-1.5-flash-8b";
+// ✅ ONLY WORKING MODEL
+const MODEL = "gemini-2.0-flash";
 
-// ✅ Small Token Optimized Prompt
+// ✅ SMALL TOKEN PROMPT
 const SYSTEM_PROMPT = `
 You are Gyani AI, an expert Indian Life Insurance Coach.
 
 Rules:
-- Reply only in professional English
-- Keep answers short, crisp, practical
+- Reply in professional English
+- Keep answers short and practical
 - Use bullet points
-- Give advanced insurance insights simply
-- Focus on Indian market
-- Explain from:
-1. Customer View
-2. Advisor View
-3. Financial View
-4. Final Recommendation
+- Focus on Indian insurance market
+- Explain simply
 
-Topics:
-Term Insurance, ULIP, Retirement, Child Plans,
-Wealth Creation, Need Based Selling,
-Objection Handling, Financial Planning.
-
-Tone:
-Professional, smart, practical, human.
+Answer Format:
+• Customer View
+• Advisor View
+• Financial Insight
+• Recommendation
 `;
 
 export default function App() {
-  // ✅ Default Welcome Message
+  const [input, setInput] = useState("");
+
   const [messages, setMessages] = useState([
     {
       role: "assistant",
       text:
-        "👋 Welcome to Gyani AI\nAsk anything about Life Insurance, Sales or Financial Planning.",
+        "👋 Welcome to Gyani AI\nAsk anything about Life Insurance or Financial Planning.",
     },
   ]);
 
-  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const messagesEndRef = useRef(null);
-
-  // ✅ Auto Scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages]);
-
-  // ✅ Gemini API Function
-  const callGemini = async (userText) => {
+  // ✅ GEMINI API
+  const askAI = async (question) => {
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
@@ -69,15 +52,13 @@ export default function App() {
           body: JSON.stringify({
             contents: [
               {
-                role: "user",
-
                 parts: [
                   {
                     text: `
 ${SYSTEM_PROMPT}
 
-User Question:
-${userText}
+Question:
+${question}
                     `,
                   },
                 ],
@@ -86,9 +67,7 @@ ${userText}
 
             generationConfig: {
               temperature: 0.7,
-              topP: 0.9,
-              topK: 20,
-              maxOutputTokens: 512,
+              maxOutputTokens: 300,
             },
           }),
         }
@@ -98,49 +77,46 @@ ${userText}
 
       console.log(data);
 
-      // ✅ Error Handling
-      if (!response.ok) {
-        throw new Error(
-          data?.error?.message || "Something went wrong"
-        );
+      // ✅ HANDLE API ERRORS
+      if (data.error) {
+        throw new Error(data.error.message);
       }
 
-      // ✅ AI Text Response
       return (
         data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "No response received."
+        "No response."
       );
     } catch (error) {
       return `❌ ${error.message}`;
     }
   };
 
-  // ✅ Send Message
+  // ✅ SEND MESSAGE
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = {
-      role: "user",
-      text: input,
-    };
+    const userQuestion = input;
 
-    // ✅ Update Chat
-    setMessages((prev) => [...prev, userMessage]);
-
-    const currentInput = input;
+    // USER MESSAGE
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: userQuestion,
+      },
+    ]);
 
     setInput("");
     setLoading(true);
 
-    // ✅ Get AI Reply
-    const aiReply = await callGemini(currentInput);
+    // AI RESPONSE
+    const reply = await askAI(userQuestion);
 
-    // ✅ Add AI Reply
     setMessages((prev) => [
       ...prev,
       {
         role: "assistant",
-        text: aiReply,
+        text: reply,
       },
     ]);
 
@@ -150,12 +126,9 @@ ${userText}
   return (
     <div className="app">
       {/* HEADER */}
-      <header className="header">
-        <h1>🧠 Gyani AI</h1>
-        <p>Life Insurance Expert</p>
-      </header>
+      <h1>🧠 Gyani AI</h1>
 
-      {/* CHAT AREA */}
+      {/* CHAT */}
       <div className="chat-box">
         {messages.map((msg, index) => (
           <div
@@ -170,17 +143,14 @@ ${userText}
           </div>
         ))}
 
-        {/* LOADING */}
         {loading && (
           <div className="ai-message">
             Thinking...
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* INPUT AREA */}
+      {/* INPUT */}
       <div className="input-area">
         <input
           type="text"
@@ -200,4 +170,4 @@ ${userText}
       </div>
     </div>
   );
-          }
+}

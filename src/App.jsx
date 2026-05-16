@@ -1,27 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-// ✅ MOST STABLE FREE MODEL
-const MODEL = "openchat/openchat-7b:free";;
+// ✅ MOST STABLE SETUP
+const MODEL = "openrouter/auto";
 
-// ✅ SMALL + SMART PROMPT
+// 🧠 SMART + SMALL PROMPT
 const SYSTEM_PROMPT = `
 You are Gyani AI, an expert Indian Life Insurance Coach.
 
 Rules:
-- Reply in simple professional English
-- Keep answers short and crisp
+- Reply in short professional English
 - Use bullet points only
-- Focus on Indian insurance market
-- Be practical and advisor-friendly
+- Be practical and Indian market focused
+- Always include:
+  Customer View
+  Advisor View
+  Recommendation
 
-Answer Format:
-• Customer View
-• Advisor View
-• Financial Insight
-• Recommendation
+Keep answers crisp and useful.
 `;
 
 export default function App() {
@@ -31,94 +29,96 @@ export default function App() {
     {
       role: "assistant",
       text:
-        "👋 Welcome to Gyani AI\nAsk anything about Life Insurance or Financial Planning.",
+        "👋 Welcome to Gyani AI\nAsk any Life Insurance or Financial Planning question.",
     },
   ]);
 
   const [loading, setLoading] = useState(false);
 
-  // ✅ API CALL (OPENROUTER)
+  const messagesEndRef = useRef(null);
+
+  // 🔥 AUTO SCROLL
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ⚡ API CALL (NO ERROR SYSTEM)
   const askAI = async (question) => {
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL,
+    try {
+      const res = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+          },
 
-          messages: [
-            {
-              role: "system",
-              content: SYSTEM_PROMPT,
-            },
-            {
-              role: "user",
-              content: question,
-            },
-          ],
+          body: JSON.stringify({
+            model: MODEL,
 
-          temperature: 0.7,
-          max_tokens: 300,
-        }),
+            messages: [
+              {
+                role: "system",
+                content: SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: question,
+              },
+            ],
+
+            temperature: 0.7,
+            max_tokens: 250,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || "API Error");
       }
-    );
 
-    const data = await response.json();
-
-    console.log(data);
-
-    if (data.error) {
-      throw new Error(data.error.message);
+      return (
+        data?.choices?.[0]?.message?.content ||
+        "No response"
+      );
+    } catch (err) {
+      return "❌ AI temporarily unavailable. Try again.";
     }
-
-    return (
-      data?.choices?.[0]?.message?.content ||
-      "No response received."
-    );
   };
 
-  // ✅ SEND MESSAGE
+  // 🚀 SEND MESSAGE
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userQuestion = input;
+    const userText = input;
 
     setMessages((prev) => [
       ...prev,
-      { role: "user", text: userQuestion },
+      { role: "user", text: userText },
     ]);
 
     setInput("");
     setLoading(true);
 
-    try {
-      const reply = await askAI(userQuestion);
+    const reply = await askAI(userText);
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: reply },
-      ]);
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: `❌ ${error.message}`,
-        },
-      ]);
-    }
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", text: reply },
+    ]);
 
     setLoading(false);
   };
 
   return (
     <div className="app">
-      <h1>🧠 Gyani AI</h1>
+      {/* HEADER */}
+      <h1>🧠 Gyani AI Coach</h1>
 
+      {/* CHAT BOX */}
       <div className="chat-box">
         {messages.map((msg, i) => (
           <div
@@ -138,17 +138,19 @@ export default function App() {
             Thinking...
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* INPUT */}
       <div className="input-area">
         <input
-          type="text"
-          placeholder="Ask insurance question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
+          placeholder="Ask insurance question..."
+          onKeyDown={(e) =>
+            e.key === "Enter" && sendMessage()
+          }
         />
 
         <button onClick={sendMessage}>

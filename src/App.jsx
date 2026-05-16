@@ -4,7 +4,7 @@ import "./App.css";
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
 // ✅ MOST STABLE FREE MODEL
-const MODEL = "google/gemma-2-9b-it:free";
+const MODEL = "openchat/openchat-7b:free";;
 
 // ✅ SMALL + SMART PROMPT
 const SYSTEM_PROMPT = `

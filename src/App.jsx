@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+  import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -6,63 +6,44 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const SYSTEM_PROMPT = `
 Tum Gyani Bhai AI ho 🤖🇮🇳
 
-India ke Top Life Insurance Mentor aur Sales Coach.
+India ke Top Life Insurance Coach.
 
-Experience:
-- 30+ years experience in Indian Life Insurance Industry
-- MDRT, Need Based Selling aur Financial Planning expert
-- Indian middle class psychology ko deeply samajhte ho
-- HDFC Life, ICICI, SBI Life, Max Life jaise market products ki understanding hai
-
-Language Style:
-- Hamesha Hinglish me answer do
-- Simple aur relatable Indian language use karo
-- Friendly, energetic aur motivational tone rakho
-- Complex insurance terms ko easy examples se samjhao
-- Real life Indian family examples use karo
-
-Conversation Style:
-- Customer ki need samajhkar answer do
-- Emotional + logical dono angle cover karo
+Rules:
+- Hinglish me answer do
+- Human tone rakho
 - Storytelling use karo
-- Bullet points aur emojis use karo
-- Short paragraphs use karo for readability
+- Indian examples do
+- Advisor + customer dono angle cover karo
+- Bullet points + emojis use karo
 
-Tumhare expertise topics:
-- Term Insurance
+Topics:
+- Term Plan
 - ULIP
-- Retirement Planning
-- Child Education Planning
-- Wealth Creation
-- Tax Saving
-- Claim Settlement
-- Family Protection
-- SIP vs Insurance
-- Human Life Value
-- Need Based Selling
+- SIP
+- Retirement
+- Child Plans
 - Objection Handling
-- Premium Pitching
-- Closing Techniques
-- Indian Insurance Market
+- Need Based Selling
+- Closing Skills
+- Financial Planning
 
-Har answer is structure me do:
-
+Har answer structure:
 🔍 Analysis
 👨 Customer Angle
 💼 Advisor Angle
-📈 Financial Planning Angle
+📈 Financial Planning
 🧠 Emotional Angle
 ✅ Final Recommendation
-
-Special Rules:
-- Kabhi robotic answer mat do
-- Har answer natural aur human jaisa lagna chahiye
-- India specific examples use karo
-- Insurance ko simple aur relatable banao
 `;
 
 export default function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      text: "🙏 Namaste! Main Gyani Bhai AI hoon 🤖\nAap insurance, sales ya financial planning ka koi bhi question pooch sakte hain 🚀",
+    },
+  ]);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -75,34 +56,31 @@ export default function App() {
     });
   }, [messages]);
 
-  // INITIAL CHAT
-  useEffect(() => {
-    initChat();
-  }, []);
+  // GEMINI CALL
+  const callGemini = async (chatMessages) => {
+    const contents = [
+      {
+        role: "user",
+        parts: [{ text: SYSTEM_PROMPT }],
+      },
 
-  // GEMINI API CALL
-  const callGemini = async (userMessage) => {
+      ...chatMessages.map((msg) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.text }],
+      })),
+    ];
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
         },
 
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `${SYSTEM_PROMPT}
-
-User Question:
-${userMessage}`,
-                },
-              ],
-            },
-          ],
+          contents,
 
           generationConfig: {
             temperature: 0.9,
@@ -124,67 +102,38 @@ ${userMessage}`,
 
     return (
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Kuch issue aa gaya 😅"
+      "Kuch samajhne me issue aa gaya 😅"
     );
-  };
-
-  // WELCOME MESSAGE
-  const initChat = async () => {
-    setLoading(true);
-
-    try {
-      const reply = await callGemini(
-        "User ko 2 lines me warm welcome karo aur bolo ki insurance ya financial planning ka koi bhi question pooch sakte hain."
-      );
-
-      setMessages([
-        {
-          role: "assistant",
-          text: reply,
-        },
-      ]);
-    } catch (error) {
-      setMessages([
-        {
-          role: "assistant",
-          text: `❌ Error: ${error.message}`,
-        },
-      ]);
-    }
-
-    setLoading(false);
   };
 
   // SEND MESSAGE
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = input;
+    const userMessage = {
+      role: "user",
+      text: input,
+    };
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "user",
-        text: userMessage,
-      },
-    ]);
+    const updatedMessages = [...messages, userMessage];
 
+    setMessages(updatedMessages);
     setInput("");
     setLoading(true);
 
     try {
-      const reply = await callGemini(userMessage);
+      const reply = await callGemini(updatedMessages);
 
-      setMessages((prev) => [
-        ...prev,
+      setMessages([
+        ...updatedMessages,
         {
           role: "assistant",
           text: reply,
         },
       ]);
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
+      setMessages([
+        ...updatedMessages,
         {
           role: "assistant",
           text: `❌ Error: ${error.message}`,
@@ -203,14 +152,16 @@ ${userMessage}`,
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={msg.role === "user" ? "user-msg" : "ai-msg"}
+            className={
+              msg.role === "user" ? "user-message" : "ai-message"
+            }
           >
             {msg.text}
           </div>
         ))}
 
         {loading && (
-          <div className="ai-msg">
+          <div className="ai-message">
             ✍️ Gyani Bhai soch rahe hain...
           </div>
         )}
@@ -218,10 +169,10 @@ ${userMessage}`,
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-area">
+      <div className="input-box">
         <input
           type="text"
-          placeholder="Insurance ya financial planning ka question poochiye..."
+          placeholder="Apna question poochiye..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -238,4 +189,3 @@ ${userMessage}`,
     </div>
   );
 }
-            

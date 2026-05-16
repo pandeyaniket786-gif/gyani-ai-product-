@@ -1,37 +1,48 @@
-  import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
+// ✅ VITE ENV VARIABLE
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
+// ✅ WORKING MODEL
+const MODEL = "gemini-2.0-flash";
+
+// ✅ AI COACH SYSTEM PROMPT
 const SYSTEM_PROMPT = `
 Tum Gyani Bhai AI ho 🤖🇮🇳
 
-India ke Top Life Insurance Coach.
+India ke Top Life Insurance Mentor aur Sales Coach.
+
+Tumhara kaam:
+- Life insurance ko simple language me samjhana
+- Advisors ko sales aur closing me help karna
+- Financial planning guidance dena
+- Emotional storytelling use karna
 
 Rules:
-- Hinglish me answer do
-- Human tone rakho
-- Storytelling use karo
-- Indian examples do
-- Advisor + customer dono angle cover karo
-- Bullet points + emojis use karo
+- Hamesha Hinglish me answer do
+- Friendly aur human tone rakho
+- Indian examples use karo
+- Bullet points aur emojis use karo
+- Robotic answer kabhi mat do
 
 Topics:
-- Term Plan
+- Term Insurance
 - ULIP
-- SIP
-- Retirement
+- SIP vs Insurance
 - Child Plans
-- Objection Handling
+- Retirement Planning
 - Need Based Selling
-- Closing Skills
+- Objection Handling
+- MDRT Mindset
 - Financial Planning
+- Wealth Creation
 
 Har answer structure:
 🔍 Analysis
 👨 Customer Angle
 💼 Advisor Angle
-📈 Financial Planning
+📈 Financial Planning Angle
 🧠 Emotional Angle
 ✅ Final Recommendation
 `;
@@ -40,7 +51,8 @@ export default function App() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "🙏 Namaste! Main Gyani Bhai AI hoon 🤖\nAap insurance, sales ya financial planning ka koi bhi question pooch sakte hain 🚀",
+      text:
+        "🙏 Namaste! Main Gyani Bhai AI hoon 🤖\n\nAap life insurance, sales, objection handling ya financial planning ka koi bhi question pooch sakte hain 🚀",
     },
   ]);
 
@@ -49,64 +61,105 @@ export default function App() {
 
   const messagesEndRef = useRef(null);
 
-  // AUTO SCROLL
+  // ✅ AUTO SCROLL
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages]);
 
-  // GEMINI CALL
+  // ✅ GEMINI API CALL
   const callGemini = async (chatMessages) => {
-    const contents = [
-      {
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }],
-      },
-
-      ...chatMessages.map((msg) => ({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.text }],
-      })),
-    ];
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
+    try {
+      // ✅ CONVERT CHAT HISTORY
+      const contents = [
+        {
+          role: "user",
+          parts: [
+            {
+              text: SYSTEM_PROMPT,
+            },
+          ],
         },
 
-        body: JSON.stringify({
-          contents,
+        ...chatMessages.map((msg) => ({
+          role: msg.role === "assistant" ? "model" : "user",
 
-          generationConfig: {
-            temperature: 0.9,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 2048,
+          parts: [
+            {
+              text: msg.text,
+            },
+          ],
+        })),
+      ];
+
+      // ✅ API REQUEST
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
+
+          body: JSON.stringify({
+            contents,
+
+            generationConfig: {
+              temperature: 0.9,
+              topP: 0.95,
+              topK: 40,
+              maxOutputTokens: 2048,
+            },
+
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_NONE",
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_NONE",
+              },
+              {
+                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold: "BLOCK_NONE",
+              },
+              {
+                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold: "BLOCK_NONE",
+              },
+            ],
+          }),
+        }
+      );
+
+      // ✅ RESPONSE JSON
+      const data = await response.json();
+
+      console.log("Gemini Response:", data);
+
+      // ✅ ERROR HANDLING
+      if (!response.ok) {
+        throw new Error(
+          data?.error?.message || "API request failed"
+        );
       }
-    );
 
-    const data = await response.json();
+      // ✅ EXTRACT TEXT
+      const text =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    console.log(data);
+      return text || "⚠️ Koi response nahi mila.";
+    } catch (error) {
+      console.error(error);
 
-    if (data.error) {
-      throw new Error(data.error.message);
+      return `❌ Error: ${error.message}`;
     }
-
-    return (
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Kuch samajhne me issue aa gaya 😅"
-    );
   };
 
-  // SEND MESSAGE
+  // ✅ SEND MESSAGE
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -117,49 +170,54 @@ export default function App() {
 
     const updatedMessages = [...messages, userMessage];
 
+    // ✅ SHOW USER MESSAGE
     setMessages(updatedMessages);
+
+    // ✅ CLEAR INPUT
     setInput("");
+
+    // ✅ LOADING
     setLoading(true);
 
-    try {
-      const reply = await callGemini(updatedMessages);
+    // ✅ GET AI RESPONSE
+    const aiReply = await callGemini(updatedMessages);
 
-      setMessages([
-        ...updatedMessages,
-        {
-          role: "assistant",
-          text: reply,
-        },
-      ]);
-    } catch (error) {
-      setMessages([
-        ...updatedMessages,
-        {
-          role: "assistant",
-          text: `❌ Error: ${error.message}`,
-        },
-      ]);
-    }
+    // ✅ SHOW AI RESPONSE
+    setMessages([
+      ...updatedMessages,
+      {
+        role: "assistant",
+        text: aiReply,
+      },
+    ]);
 
     setLoading(false);
   };
 
   return (
     <div className="app">
-      <h1>🤖 Gyani Bhai AI</h1>
+      {/* HEADER */}
+      <header className="header">
+        <h1>🤖 Gyani Bhai AI</h1>
+        <p>Indian Life Insurance Expert</p>
+      </header>
 
+      {/* CHAT AREA */}
       <div className="chat-box">
         {messages.map((msg, index) => (
           <div
             key={index}
             className={
-              msg.role === "user" ? "user-message" : "ai-message"
+              msg.role === "user"
+                ? "user-message"
+                : "ai-message"
             }
           >
             {msg.text}
           </div>
         ))}
 
+        {/* LOADING */}
         {loading && (
           <div className="ai-message">
             ✍️ Gyani Bhai soch rahe hain...
@@ -169,10 +227,11 @@ export default function App() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-box">
+      {/* INPUT AREA */}
+      <div className="input-area">
         <input
           type="text"
-          placeholder="Apna question poochiye..."
+          placeholder="Apna insurance question poochiye..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
